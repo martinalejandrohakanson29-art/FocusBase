@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">FocusBase</string>
+    <string name="accessibility_description">Protección de FocusBase para evitar desinstalaciones y asegurar el tiempo de enfoque.</string>
 </resources>

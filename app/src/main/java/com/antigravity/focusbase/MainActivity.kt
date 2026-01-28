@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import android.text.TextUtils
 
 class MainActivity : AppCompatActivity() {
 
@@ -28,17 +29,26 @@ class MainActivity : AppCompatActivity() {
         // 2. Solicitar ignorar optimizaciones de batería (Vital para persistencia)
         requestBatteryOptimizationExemption()
 
-        // Botón para iniciar el servicio
+        // Botón para iniciar el servicio de persistencia
         findViewById<Button>(R.id.btnStart).setOnClickListener {
             startFocusService()
         }
 
-        /* NUEVO: Botón para configuración de Xiaomi.
-           Descomenta esto cuando añadas un botón con id 'btnXiaomi' en tu XML
-        */
-        // findViewById<Button>(R.id.btnXiaomi).setOnClickListener {
-        //    openXiaomiSettings()
-        // }
+        // NUEVO: Botón para activar Accesibilidad (El "Escudo Anti-Sabotaje")
+        // Asegúrate de añadir un botón con id 'btnAccessibility' en tu activity_main.xml
+        findViewById<Button>(R.id.btnAccessibility)?.setOnClickListener {
+            if (!isAccessibilityServiceEnabled()) {
+                openAccessibilitySettings()
+            } else {
+                Toast.makeText(this, "El escudo ya está activo ✅", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Botón para configuración de Xiaomi (Inicio Automático)
+        // Asegúrate de añadir un botón con id 'btnXiaomi' en tu activity_main.xml
+        findViewById<Button>(R.id.btnXiaomi)?.setOnClickListener {
+            openXiaomiSettings()
+        }
     }
 
     private fun startFocusService() {
@@ -49,6 +59,28 @@ class MainActivity : AppCompatActivity() {
             startService(intent)
         }
         Toast.makeText(this, "Servicio Focus Iniciado", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun isAccessibilityServiceEnabled(): Boolean {
+        val service = "$packageName/${FocusAccessibilityService::class.java.canonicalName}"
+        val enabled = Settings.Secure.getInt(
+            contentResolver,
+            Settings.Secure.ACCESSIBILITY_ENABLED
+        )
+        if (enabled == 1) {
+            val settingValue = Settings.Secure.getString(
+                contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            )
+            return settingValue?.contains(service) == true
+        }
+        return false
+    }
+
+    private fun openAccessibilitySettings() {
+        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        startActivity(intent)
+        Toast.makeText(this, "Busca 'FocusBase' y actívalo", Toast.LENGTH_LONG).show()
     }
 
     private fun requestNotificationPermission() {
@@ -64,18 +96,23 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             if (!pm.isIgnoringBatteryOptimizations(packageName)) {
-                val intent = Intent().apply {
-                    action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
-                    data = Uri.parse("package:$packageName")
+                try {
+                    val intent = Intent().apply {
+                        action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+                        data = Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    // Algunos dispositivos no permiten la intención directa
+                    val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                    startActivity(intent)
                 }
-                startActivity(intent)
             }
         }
     }
 
     private fun openXiaomiSettings() {
         try {
-            // Intenta abrir directamente la gestión de Inicio Automático de MIUI/HyperOS
             val intent = Intent().apply {
                 component = ComponentName(
                     "com.miui.securitycenter",
@@ -84,7 +121,6 @@ class MainActivity : AppCompatActivity() {
             }
             startActivity(intent)
         } catch (e: Exception) {
-            // Si no es Xiaomi o la ruta cambió, abre los detalles de la app
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                 data = Uri.parse("package:$packageName")
             }

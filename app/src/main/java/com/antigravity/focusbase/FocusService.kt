@@ -5,11 +5,25 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.SystemClock
+import android.util.Log
 import androidx.core.app.NotificationCompat
 
 class FocusService : Service() {
+
+    private val handler = Handler(Looper.getMainLooper())
+    private val TAG = "FocusBaseCheck"
+
+    // El "Latido": Envía un mensaje al Logcat cada 30 segundos para confirmar que sigue vivo
+    private val heartbeatRunnable = object : Runnable {
+        override fun run() {
+            Log.d(TAG, "❤ Latido: El servicio sigue activo - ${System.currentTimeMillis()}")
+            handler.postDelayed(this, 30000) // Se repite cada 30 segundos
+        }
+    }
 
     companion object {
         const val NOTIFICATION_ID = 1001
@@ -18,11 +32,14 @@ class FocusService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        // Este log te dirá si la app arrancó de cero o si resucitó tras ser cerrada
+        Log.i(TAG, "🚀 SERVICIO INICIADO O REINICIADO")
+
         createNotificationChannel()
+        handler.post(heartbeatRunnable) // Iniciamos el monitoreo del latido
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Creamos la notificación permanente
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
             this, 0, notificationIntent,
@@ -33,12 +50,11 @@ class FocusService : Service() {
             .setContentTitle("Modo Focus Activo")
             .setContentText("Protección de persistencia activada.")
             .setSmallIcon(android.R.drawable.ic_lock_lock)
-            .setOngoing(true) // Impide que se elimine deslizando
+            .setOngoing(true)
             .setContentIntent(pendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_HIGH) // Prioridad alta para Xiaomi
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
 
-        // Validación para Android 15 (API 35)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(
                 NOTIFICATION_ID,
@@ -49,19 +65,19 @@ class FocusService : Service() {
             startForeground(NOTIFICATION_ID, notification)
         }
 
-        // START_STICKY: Si el sistema mata el servicio, lo reinicia automáticamente
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    // El "Desfibrilador": Se activa cuando el usuario desliza la app en Recientes
+    // El "Desfibrilador": Se activa cuando el usuario desliza la app en la lista de Recientes
     override fun onTaskRemoved(rootIntent: Intent?) {
+        Log.w(TAG, "⚠️ Se detectó cierre manual (onTaskRemoved). Intentando reanimación...")
+
         val restartServiceIntent = Intent(applicationContext, this.javaClass).apply {
             setPackage(packageName)
         }
 
-        // Programamos una alarma para reiniciar el servicio en 1 segundo
         val restartPendingIntent = PendingIntent.getService(
             this, 1, restartServiceIntent,
             PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
@@ -75,6 +91,12 @@ class FocusService : Service() {
         )
 
         super.onTaskRemoved(rootIntent)
+    }
+
+    override fun onDestroy() {
+        Log.e(TAG, "🛑 El servicio ha sido destruido por el sistema.")
+        handler.removeCallbacks(heartbeatRunnable) // Limpiamos el handler si se cierra
+        super.onDestroy()
     }
 
     private fun createNotificationChannel() {

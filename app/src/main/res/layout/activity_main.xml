@@ -3,12 +3,46 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center">
+    android:gravity="center"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Panel de Control FocusBase"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="32dp" />
 
     <Button
         android:id="@+id/btnStart"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:backgroundTint="#4CAF50"
+        android:text="1. Activar Inmortalidad" />
+
+    <Button
+        android:id="@+id/btnAccessibility"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:backgroundTint="#2196F3"
+        android:text="2. Activar Escudo Anti-Sabotaje" />
+
+    <Button
+        android:id="@+id/btnXiaomi"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:backgroundTint="#FF5722"
+        android:text="3. Configuración Xiaomi (Autostart)" />
+
+    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Activar Inmortalidad" />
+        android:layout_marginTop="32dp"
+        android:text="Estado: Monitoreando Latidos..."
+        android:textColor="#757575"
+        android:textSize="14sp" />
 
 </LinearLayout>
