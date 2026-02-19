@@ -10,17 +10,16 @@ class FocusAccessibilityService : AccessibilityService() {
 
     private val TAG = "FocusBaseCheck"
 
-    // --- LISTA NEGRA DE APLICACIONES (Actualizada) ---
+    // --- LISTA NEGRA DE APLICACIONES ---
     private val appBlacklist = setOf(
         "com.instagram.android",      // Instagram
         "com.facebook.katana",        // Facebook
         "com.zhiliaoapp.musically",   // TikTok
         "com.twitter.android",        // X (ex Twitter)
-        "org.telegram.messenger"     // Telegram
-
+        "org.telegram.messenger"      // Telegram
     )
 
-    // --- LISTA NEGRA DE WEBS (Actualizada) ---
+    // --- LISTA NEGRA DE WEBS ---
     private val webBlacklist = setOf(
         "facebook.com",
         "instagram.com",
@@ -33,7 +32,9 @@ class FocusAccessibilityService : AccessibilityService() {
     )
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
-        // Escuchamos cambios de ventana y de contenido (necesario para Chrome)
+        // Log de ayuda para diagnóstico (puedes verlo en Logcat)
+        Log.d(TAG, "Evento detectado: ${event.packageName}")
+
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
 
@@ -46,12 +47,12 @@ class FocusAccessibilityService : AccessibilityService() {
                 return
             }
 
-            // 2. Bloqueo de Navegador Chrome (Optimizado para Android 16)
+            // 2. Bloqueo de Navegador Chrome
             if (packageName == "com.android.chrome") {
                 verificarYBloquearWeb()
             }
 
-            // 3. Escudo Anti-Desinstalación (Ajustes)
+            // 3. Escudo Anti-Desinstalación
             if (packageName == "com.android.settings" || packageName == "com.miui.securitycenter") {
                 verificarYBloquearAjustes()
             }
@@ -62,7 +63,6 @@ class FocusAccessibilityService : AccessibilityService() {
         try {
             val rootNode = rootInActiveWindow ?: return
 
-            // IDs conocidos de la barra de Chrome
             val chromeIds = arrayOf(
                 "com.android.chrome:id/url_bar",
                 "com.android.chrome:id/location_bar_edit_text",
@@ -71,7 +71,6 @@ class FocusAccessibilityService : AccessibilityService() {
 
             var detectedUrl = ""
 
-            // Intento A: Buscar por ID directo
             for (id in chromeIds) {
                 val nodes = rootNode.findAccessibilityNodeInfosByViewId(id)
                 if (nodes.isNotEmpty()) {
@@ -81,7 +80,6 @@ class FocusAccessibilityService : AccessibilityService() {
                 }
             }
 
-            // Intento B: Búsqueda profunda si el ID falla (Plan B para HyperOS 3)
             if (detectedUrl.isEmpty()) {
                 detectedUrl = buscarUrlEnNodos(rootNode) ?: ""
             }
@@ -104,7 +102,6 @@ class FocusAccessibilityService : AccessibilityService() {
         if (node == null) return null
         val text = node.text?.toString()?.lowercase() ?: ""
 
-        // Si el texto parece una URL o contiene algo de nuestra lista negra
         if (text.contains(".") && (text.contains("http") || text.contains("/") || webBlacklist.any { text.contains(it) })) {
             return text
         }
@@ -152,6 +149,6 @@ class FocusAccessibilityService : AccessibilityService() {
             flags = AccessibilityServiceInfo.DEFAULT or AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
         }
         this.serviceInfo = info
-        Log.i(TAG, "✅ Servicio Focus Base: Lista Negra Expandida y Activa")
+        Log.i(TAG, "✅ Servicio Focus Base Activo")
     }
 }
