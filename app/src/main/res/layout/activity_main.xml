@@ -31,11 +31,19 @@
         android:text="2. Activar Escudo Anti-Sabotaje" />
 
     <Button
+        android:id="@+id/btnAdmin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:backgroundTint="#9C27B0"
+        android:text="4. Activar Protección de Sistema (Admin)" />
+
+    <Button
         android:id="@+id/btnXiaomi"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:backgroundTint="#FF5722"
-        android:text="3. Configuración Xiaomi (Autostart)" />
+        android:text="5. Configuración Xiaomi (Autostart)" />
 
     <TextView
         android:layout_width="wrap_content"

@@ -1,7 +1,6 @@
 package com.antigravity.focusbase
 
 import android.app.*
-import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
@@ -15,12 +14,12 @@ import androidx.core.app.NotificationCompat
 class FocusService : Service() {
 
     private val handler = Handler(Looper.getMainLooper())
-    private val TAG = "FocusBaseCheck"
+    private val tag = "FocusBaseCheck"
 
     // El "Latido": Envía un mensaje al Logcat cada 30 segundos para confirmar que sigue vivo
     private val heartbeatRunnable = object : Runnable {
         override fun run() {
-            Log.d(TAG, "❤ Latido: El servicio sigue activo - ${System.currentTimeMillis()}")
+            Log.d(tag, "❤ Latido: El servicio sigue activo - ${System.currentTimeMillis()}")
             handler.postDelayed(this, 30000) // Se repite cada 30 segundos
         }
     }
@@ -33,7 +32,7 @@ class FocusService : Service() {
     override fun onCreate() {
         super.onCreate()
         // Este log te dirá si la app arrancó de cero o si resucitó tras ser cerrada
-        Log.i(TAG, "🚀 SERVICIO INICIADO O REINICIADO")
+        Log.i(tag, "🚀 SERVICIO INICIADO O REINICIADO")
 
         createNotificationChannel()
         handler.post(heartbeatRunnable) // Iniciamos el monitoreo del latido
@@ -55,14 +54,20 @@ class FocusService : Service() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(
-                NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-            )
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "❌ Error al iniciar Foreground Service: ${e.message}")
+            // Si falla, al menos intentamos seguir como servicio normal, 
+            // aunque el sistema sea más propenso a matarnos.
         }
 
         return START_STICKY
@@ -72,7 +77,7 @@ class FocusService : Service() {
 
     // El "Desfibrilador": Se activa cuando el usuario desliza la app en la lista de Recientes
     override fun onTaskRemoved(rootIntent: Intent?) {
-        Log.w(TAG, "⚠️ Se detectó cierre manual (onTaskRemoved). Intentando reanimación...")
+        Log.w(tag, "⚠️ Se detectó cierre manual (onTaskRemoved). Intentando reanimación...")
 
         val restartServiceIntent = Intent(applicationContext, this.javaClass).apply {
             setPackage(packageName)
@@ -83,7 +88,7 @@ class FocusService : Service() {
             PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
         alarmManager.set(
             AlarmManager.ELAPSED_REALTIME,
             SystemClock.elapsedRealtime() + 1000,
@@ -94,7 +99,7 @@ class FocusService : Service() {
     }
 
     override fun onDestroy() {
-        Log.e(TAG, "🛑 El servicio ha sido destruido por el sistema.")
+        Log.e(tag, "🛑 El servicio ha sido destruido por el sistema.")
         handler.removeCallbacks(heartbeatRunnable) // Limpiamos el handler si se cierra
         super.onDestroy()
     }
@@ -106,7 +111,7 @@ class FocusService : Service() {
                 "Canal de Servicio Focus",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Mantiene la aplicación FocusBase activa en segundo plano"
+                description = "Mantiene la aplicación Focus Base activa en segundo plano"
                 setShowBadge(false)
             }
 
